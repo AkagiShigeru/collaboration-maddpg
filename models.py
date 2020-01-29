@@ -75,8 +75,9 @@ class Critic(nn.Module):
         self.hidden = nn.ModuleList()
         layers = [state_size] + fc_units + [1]  # output to one node: value
         for i_d in range(len(layers) - 1):
-            self.hidden.append(nn.Linear(layers[i_d] + (action_size if i_d == self.cat_layer else 0),
-                                         layers[i_d + 1]))
+            self.hidden.append(
+                nn.Linear(layers[i_d] + (action_size if i_d == self.cat_layer else 0),
+                          layers[i_d + 1]))
 
         self.reset_parameters()
 

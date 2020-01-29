@@ -1,7 +1,7 @@
-# Solving the Reacher continuous control task with Deep Deterministic Policy Gradient
+# Solving the Tennis multi-agent task with a modified Deep Deterministic Policy Gradient
 
-This repository provides code to solve the [Reacher](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher) environment
-with Deep Reinforcement Learning, specifically with the Deep Deterministic Policy Gradient (DDPG) method.
+This repository provides code to solve the [Tennis](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#tennis) environment
+with Deep Reinforcement Learning, specifically with the Multi-Agent Deep Deterministic Policy Gradient (MADDPG) method.
 The code in this repository can be used to train an agent or inspect/visualize a pre-trained agent.
 The code of this project was in parts adapted from code given in the Udacity Deep RL nanodegree program.
 
@@ -16,14 +16,14 @@ Furthermore, the full environment as given in `environment.yml` is required to w
 conda env create -f environment.yml
 ```
 
-This will create a new environment with the name `reacher-ddpg` and install all dependencies.
+This will create a new environment with the name `tennis-ddpg` and install all dependencies.
 
-The actual Reacher Unity application can be downloaded from the links provided here:
+The actual Tennis Unity application can be downloaded from the links provided here:
 
-- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher_Linux.zip)
-- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher.app.zip)
-- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher_Windows_x86.zip)
-- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Reacher/one_agent/Reacher_Windows_x86_64.zip)
+- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Linux.zip)
+- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis.app.zip)
+- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Windows_x86.zip)
+- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Windows_x86_64.zip)
 
 (_For Windows users_) Check out [this link](https://support.microsoft.com/en-us/help/827218/how-to-determine-whether-a-computer-is-running-a-32-bit-version-or-64) if you need help with determining if your computer is running a 32-bit version or 64-bit version of the Windows operating system.
 

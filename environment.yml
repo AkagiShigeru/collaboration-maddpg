@@ -1,4 +1,4 @@
-name: reacher-ddpg
+name: tennis-ddpg
 channels:
   - defaults
 dependencies:
