@@ -31,23 +31,32 @@ The actual Tennis Unity application can be downloaded from the links provided he
 
 ## Details about the environment
 
-We consider the environment with one agent for the purpose of this project.
-In this environment, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location.
-Hence, the agent should learn to maximize the time in which it keeps its hand at the target location.
+In this environment, two agents control rackets to bounce a ball over a net.
+If an agent hits the ball over the net, it receives a reward of +0.1.
+If an agent lets a ball hit the ground or hits the ball out of bounds, it receives a reward of -0.01.
+Thus, the goal of each agent is to keep the ball in play.
 
-The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. 
-Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a number between -1 and 1.
+The observation space consists of 8 variables corresponding to the position and velocity of the ball and racket.
+Each agent receives its own, local observation.
+Two continuous actions are available, corresponding to movement toward (or away from) the net, and jumping.
+
+The task is episodic, and in order to solve the environment, your agents must get an average score of +0.5 (over 100 consecutive episodes, after taking the maximum over both agents). Specifically,
+
+- After each episode, we add up the rewards that each agent received (without discounting), to get a score for each agent. This yields 2 (potentially different) scores. We then take the maximum of these 2 scores.
+- This yields a single **score** for each episode.
+
+The environment is considered solved, when the average (over 100 episodes) of those **scores** is at least +0.5.
 
 ## How to use the code
 
-To train a reinforcement agent with this code, you should run:
+To train a reinforcement agent with this MADDPG code, you should run:
 
 ```
-python cont_control.py train_config.py
+python collaboration.py train_config.py
 ```
 
 The file `train_config.py` includes reasonable standard settings and configuration parameters.
-The resulting network weights of the trained RL agent will be saved in a file and the training scores are plotted.
+The resulting network weights of the trained RL agent will be saved in files and the training scores are plotted.
 
 To view a pre-trained agent in action, just change the option *train_model* in the config file to `False` and specify a valid path to a file containing the model weights.
 Afterwards, run the code as given above.
@@ -55,8 +64,8 @@ Afterwards, run the code as given above.
 Here is a brief description of the included files and their functions:
 
 - `models.py`: Defines PyTorch neural networks for actor and critic with user-specified number of dense layers between in- and output and ReLU activation after each hidden layer.
-- `ddpg_agent.py`: Includes the implementation of the RL agent that uses the actor and critic neural networks to adapt and learn the environment. Also includes an implementation of an experience replay memory with optional prioritization.
-- `navigation.py`: The main driver file that controls and steers the training and plotting.
+- `ddpg_agents.py`: Includes the implementation of the single and multi RL agents that uses the actor and critic neural networks to adapt and learn the environment. Also includes an implementation of an experience replay memory with optional prioritization.
+- `collaboration.py`: The main driver file that controls and steers the training and plotting.
 - `train_config.py`: A config file with settings to train a new agent.
 - `replay_config.py`: A config file with settings to inspect a trained agent, based on the experiment results provided in this package.
 

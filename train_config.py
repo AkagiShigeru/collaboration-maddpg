@@ -14,7 +14,7 @@ model_save_path = os.path.join(experiment_path, "model_weights")  # directory to
 save_scores = os.path.join(experiment_path, "training_scores.hdf")
 train_model = True  # if False, will show trained agent, if True: will train new model and save weights in above path
 maddpg = True  # will perform multi-agent ddpg with shared critic, otherwise single agent ddpg (bad performance)
-graphic_mode = True  # if True, will show unity window, if False will not show window
+graphic_mode = False  # if True, will show unity window, if False will not show window
 eps_to_watch = 5  # if watching trained agents in action, how many episodes to watch
 
 ### general options
@@ -36,7 +36,7 @@ lr_actor = 1e-3  # actor learning rate
 lr_critic = 1e-3  # critic learning rate
 loss_l = 2  # Lx norm to use for critic loss, options: 1 or 2
 weight_decay = 0  # L2 weight decay
-learn_every = 1  # learn every update_every steps of environment
+learn_every = 2  # learn every update_every steps of environment
 learn_steps = 1  # how many learning steps per environment step
 
 # noise

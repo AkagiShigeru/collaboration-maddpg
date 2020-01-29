@@ -1,4 +1,4 @@
-# Report to solving the Reacher environment with DDPG
+# Report to solving the Tennis environment with MADDPG
 
 ## Approach
 
