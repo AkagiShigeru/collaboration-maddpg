@@ -70,7 +70,7 @@ class MultiDDPGAgent():
         self.t_step = 0
         self.noise.reset()
 
-    def act(self, state_all):
+    def act(self, state_all, add_noise=True):
         """
         Let all agents act.
         Receives full state tensor of all agents
@@ -80,7 +80,7 @@ class MultiDDPGAgent():
         for aid in range(self.num_agents):
             # only add noise after pre-loading memories
             noise = 0
-            if not self.prefetching:
+            if not self.prefetching and add_noise:
                 noise = self.add_noise()
             actions.append(self.agents[aid].act(state_all[aid],
                                                 add_noise=False) + noise)

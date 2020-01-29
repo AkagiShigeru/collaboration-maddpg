@@ -32,7 +32,8 @@ def init_environment(path_to_app):
 
 
 def plot_scores(scores, cfg):
-    scores = pd.Series(scores)
+    
+    scores = pd.Series(scores.max(axis=1))
     # plot the scores
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111)
@@ -65,7 +66,8 @@ def ddpg_learning(env, agent, brain_name,
         brain_name: name of the Unity brain instance to select correct agent/window
         n_episodes (int): maximum number of training episodes
         max_t (int): maximum number of time-steps per episode
-        avg_score_cutoff (float): training will be stopped if avg score over last 100 episodes exceeds this value
+        avg_score_cutoff (float): training will be stopped
+                                  if avg score over last 100 episodes exceeds this value
         model_save_path: path to directory to save model weights in
     """
     print("Training an agent with DDPG.")
@@ -104,7 +106,7 @@ def ddpg_learning(env, agent, brain_name,
                 agent.step(states, actions, rewards, next_states, dones)
             else:
                 # single agent with states and actions stacked together
-                agent.step(states.reshape(-1), actions.reshape(num_agents, action_size),
+                agent.step(states.reshape(-1), actions.reshape(-1),
                            np.max(rewards), next_states.reshape(-1),
                            np.any(dones))
 
@@ -176,26 +178,38 @@ def train_or_play(cfg):
 
     else:  # visualize trained model and scores
 
-        assert (os.path.exists(cfg.save_path_actor),
+        assert (os.path.exists(cfg.model_save_path),
                 "Saved model weights need to exist before you can watch a trained agent!")
 
         print("Visualizing the trained agent!")
 
-        env_info = env.reset(train_mode=False)[brain_name]
-        agent.actor_local.load_state_dict(torch.load(cfg.save_path_actor))
-        agent.critic_local.load_state_dict(torch.load(cfg.save_path_critic))
+        for epi in range(1, cfg.eps_to_watch + 1):
 
-        score = 0  # initialize the score
-        state = env_info.vector_observations[0]
-        while True:
-            action = agent.act(state, add_noise=False)  # take step without noise
-            env_info = env.step(action)[brain_name]
-            state = env_info.vector_observations[0]
-            reward = env_info.rewards[0]
-            done = env_info.local_done[0]
-            score += reward
-            if done:
-                break
+            print("Playing episode {:d}".format(epi))
+
+            env_info = env.reset(train_mode=False)[brain_name]
+
+            scores = np.zeros(num_agents)  # initialize the score
+            states = env_info.vector_observations
+            while True:
+
+                if cfg.maddpg:
+                    actions = agent.act(states, add_noise=False)  # take step without noise
+                    env_info = env.step(actions)[brain_name]
+                else:
+                    actions = agent.act(states.reshape(-1), add_noise=False)
+                    env_info = env.step(actions.reshape(num_agents, action_size))
+
+                states = env_info.vector_observations  # new_states
+                rewards = env_info.rewards
+                dones = env_info.local_done
+                scores += rewards
+                if np.any(dones):
+                    break
+
+            # warning: n_agent 2 logic hardcoded here
+            print("Episode {:d} ended with score: {:.2f} (agent 1: {:.2f}, agent 2: {:.2f})!".
+                  format(epi, np.max(scores), scores[0], scores[1]))
 
         if os.path.exists(cfg.save_scores):
             plot_scores(pd.read_hdf(cfg.save_scores, "scores"), cfg)

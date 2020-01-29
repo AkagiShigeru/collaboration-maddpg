@@ -31,7 +31,7 @@ dense_layers_critic = [512, 256]
 buffer_size = int(3e5)  # replay buffer size
 batch_size = 256  # mini-batch size
 gamma = 0.99  # discount factor
-tau = 1e-3  # for soft update of target parameters
+tau = 1e-2  # for soft update of target parameters
 lr_actor = 5e-4  # actor learning rate
 lr_critic = 1e-3  # critic learning rate
 weight_decay = 0  # L2 weight decay
@@ -56,4 +56,4 @@ priority_eps = 1e-5  # epsilon to add to priorities to avoid zeros
 ### training options
 n_episodes = 20000  # max. number of episodes (if not done before)
 max_t = 10000  # max time per episode, intentionally set high to let environment cut-off
-avg_score_cutoff = 1.5  # stop training when score (last 100 episodes) exceeds value
+avg_score_cutoff = 1.0  # stop training when score (last 100 episodes) exceeds value
