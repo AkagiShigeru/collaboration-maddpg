@@ -13,8 +13,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sb
 
-import torch
-
 from ddpg_agents import SingleDDPGAgent, MultiDDPGAgent
 
 from unityagents import UnityEnvironment
@@ -32,7 +30,6 @@ def init_environment(path_to_app):
 
 
 def plot_scores(scores, cfg):
-    
     scores = pd.Series(scores.max(axis=1))
     # plot the scores
     fig = plt.figure(figsize=(12, 8))
@@ -78,6 +75,7 @@ def ddpg_learning(env, agent, brain_name,
     num_agents = len(env_info.agents)
 
     if not os.path.exists(model_save_path):
+        print("Creating directory {:s} to save model weights into!".format(model_save_path))
         os.mkdir(model_save_path)
 
     all_scores = []  # list containing scores from each episode
@@ -118,9 +116,6 @@ def ddpg_learning(env, agent, brain_name,
         all_scores.append(scores)  # save most recent score
 
         last100mean = np.mean(np.max(np.atleast_2d(all_scores), axis=1)[-100:])
-        print('\rEpisode {}\tAverage Score: {:.2f}'.format(
-            i_episode, last100mean), end="")
-
         if i_episode % 100 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(
                 i_episode, last100mean))
@@ -178,8 +173,8 @@ def train_or_play(cfg):
 
     else:  # visualize trained model and scores
 
-        assert (os.path.exists(cfg.model_save_path),
-                "Saved model weights need to exist before you can watch a trained agent!")
+        assert os.path.exists(cfg.model_save_path), \
+            "Saved model weights need to exist before you can watch a trained agent!"
 
         print("Visualizing the trained agent!")
 

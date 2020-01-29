@@ -16,7 +16,7 @@ from utils import ReplayBuffer, OUNoise
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class MultiDDPGAgent():
+class MultiDDPGAgent:
     """ Multi-agent DDPG implementation."""
 
     def __init__(self, state_size, action_size, num_agents, cfg):
@@ -94,8 +94,7 @@ class MultiDDPGAgent():
         """
         target_actions = []
         for aid in range(self.num_agents):
-            # TODO probably incorrect shape here...
-            target_actions.append(self.agents[aid]._target_act(states_all[aid]))
+            target_actions.append(self.agents[aid].target_act(states_all[:, aid, :]))
 
         return target_actions
 
@@ -108,10 +107,10 @@ class MultiDDPGAgent():
                         next_states, max_prio, dones)
 
         # start training if memory size large enough.
-        if len(self.agents[0].memory) >= max(self.cfg.batch_size, self.cfg.init_replay):
+        if len(self.memory) >= max(self.cfg.batch_size, self.cfg.init_replay):
             if self.prefetching:
                 self.prefetching = False
-                print("Pre-loading memories complete, starting training!")
+                print("Pre-loading of memories complete, starting training!")
         else:
             return
 
@@ -135,69 +134,75 @@ class MultiDDPGAgent():
             samples from replay memory.
         """
 
+        # from memory
         states, actions, rewards, next_states, priorities, dones, indices = samples
 
-        from IPython import embed
-        embed()
+        # creating full states and next_states with shape (batch_size, -1)
+        batch_size = self.cfg.batch_size
+        full_states = states.view(batch_size, -1)
+        full_next_states = next_states.view(batch_size, -1)
 
-        batch_size = full_state.shape[0]
+        # selecting the correct agent
+        agent = self.agents[agent_number]
 
-        agent = self.maddpg_agent[agent_number]
+        # 1. Update of critic
         agent.critic_optimizer.zero_grad()
 
-        # critic loss = batch mean of (y- Q(s,a) from target network)^2
-        # y = reward of this timestep + discount * Q(st+1,at+1) from target network
+        # critic loss = TD-error, so batch mean of (y- Q(s,a) from target network)^2
+        # y = reward of this time-step + discount * Q(st+1,at+1) from target network
 
-        # change the shape to batch_size X num_agents X remaining.
-        # by changing the shape we can select local observations by agents by selecting [:, i, :] for i in range(num_agents)
+        # shape (batch_size, num_agents, -1)
+        target_actions = torch.cat(
+            self._target_act(next_states.view(batch_size, self.num_agents, -1)), dim=1)
+        # returns list, so change to shape (batch_size, action_size, num_agent)
 
-        target_actions = self.target_act(next_state.view(batch_size, self.num_agents, -1))
+        # get next q values from target critic
+        q_next = agent.critic_target(full_next_states, target_actions.to(device))
 
-        # turn a list of 2x2 into a batch_size x (action_size * num_agent)
-        target_actions = torch.cat(target_actions, dim=1)
+        y = rewards[:, agent_number].view(-1, 1) + self.cfg.gamma * q_next * (
+                1 - dones[:, agent_number].view(-1, 1))
 
-        with torch.no_grad():
-            q_next = agent.target_critic(full_next_state, target_actions.to(device))
+        q = agent.critic_local(full_states, actions.view(batch_size, -1))
 
-        # shape of reward is batch_size X num_agents so [:, agent_number] is needed to pick the rewards for the specific agent
-        # that is being updated.
-        y = reward[:, agent_number].view(-1, 1) + self.discount_factor * q_next * (
-                1 - done[:, agent_number].view(-1, 1))
+        critic_loss = None
+        if self.cfg.loss_l == 1:
+            critic_loss = torch.nn.SmoothL1Loss(q, y.detach())
+        elif self.cfg.loss_l == 2:
+            critic_loss = F.mse_loss(q, y.detach())
+        else:
+            AssertionError("L{:d} loss is not supported!".format(self.cfg.loss_l))
 
-        q = agent.critic(full_state, action.view(batch_size, -1))
-
-        critic_loss = F.mse_loss(q, y.detach())
-
+        # optimization of critic (local) loss
         critic_loss.backward()
-        torch.nn.utils.clip_grad_norm_(agent.critic.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(agent.critic_local.parameters(), 1)
         agent.critic_optimizer.step()
 
-        # update actor network using policy gradient
+        # 2. Update of actor network using policy gradient
         agent.actor_optimizer.zero_grad()
+
         # make input to agent
         # detach the other agents to save computation
         # saves some time for computing derivative
-        q_input = [
-            self.maddpg_agent[i].actor(
-                state.view([batch_size, self.num_agents, -1])[:, i, :]) if i == agent_number else
-            self.maddpg_agent[i].actor(
-                state.view([batch_size, self.num_agents, -1])[:, i, :]).detach() for i in
-            range(self.num_agents)]
+        q_input = [self.agents[i].actor_local(
+            states.view([batch_size, self.num_agents, -1])[:, i, :]) if i == agent_number else
+                   self.agents[i].actor_local(
+                       states.view([batch_size, self.num_agents, -1])[:, i, :]).detach() for i in
+                   range(self.num_agents)]
 
         q_input = torch.cat(q_input, dim=1)
 
         # combine all the actions and observations for input to critic
         # many of the obs are redundant, and obs[1] contains all useful information already
 
-        # get the policy gradient
-        actor_loss = -agent.critic(full_state, q_input).mean()
+        # get the actual policy gradient here
+        actor_loss = -agent.critic_local(full_states, q_input).mean()
+
+        # optimize
         actor_loss.backward()
-        torch.nn.utils.clip_grad_norm_(agent.actor.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(agent.actor_local.parameters(), 1)
         agent.actor_optimizer.step()
 
         # soft update the models
-        # having update in here as well makes the model converge faster
-        # I could increase the trasnfer rate as well. instead of having updates called twice.
         agent.soft_update(agent.critic_local, agent.critic_target, self.cfg.tau)
         agent.soft_update(agent.actor_local, agent.actor_target, self.cfg.tau)
 
@@ -222,7 +227,7 @@ class MultiDDPGAgent():
             agent.load_weights(model_save_path, suffix="_{:d}".format(aid))
 
 
-class SingleDDPGAgent():
+class SingleDDPGAgent:
     """
         Single agent DDPG.
         Interacts with and learns from the environment.
@@ -305,14 +310,13 @@ class SingleDDPGAgent():
             action += self.noise.sample()
         return np.clip(action, -1, 1)
 
-    def _target_act(self, state):
+    def target_act(self, state):
         """ Let target network return action."""
-        state = torch.from_numpy(state).float().to(device)
-
+        self.actor_target.eval()
         with torch.no_grad():
             action_target = self.actor_target(state).cpu().data.numpy()
 
-        return action_target
+        return np.clip(action_target, -1, 1)
 
     def reset(self):
         self.t_step = 0
@@ -344,7 +348,8 @@ class SingleDDPGAgent():
         if self.cfg.prioritized_replay:
             weights = 1. / ((self.cfg.batch_size * priorities) ** self.cfg.priority_beta)
             weights /= max(weights)
-            # calculating new transition priorities based on residuals between target and local network predictions
+            # calculating new transition priorities based on residuals
+            # between target and local network predictions
             diffs = Q_targets - Q_expected  # TD-error
             diffs = np.abs(np.squeeze(diffs.tolist()))
             self.memory.update_prios(indices, diffs)
@@ -372,7 +377,8 @@ class SingleDDPGAgent():
         self.soft_update(self.critic_local, self.critic_target, self.cfg.tau)
         self.soft_update(self.actor_local, self.actor_target, self.cfg.tau)
 
-    def hard_copy_weights(self, local_model, target_model):
+    @staticmethod
+    def hard_copy_weights(local_model, target_model):
         """Update model parameters.
 
         Params
@@ -383,7 +389,8 @@ class SingleDDPGAgent():
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(local_param.data)
 
-    def soft_update(self, local_model, target_model, tau):
+    @staticmethod
+    def soft_update(local_model, target_model, tau):
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
 

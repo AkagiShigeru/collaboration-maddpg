@@ -34,6 +34,7 @@ gamma = 0.99  # discount factor
 tau = 1e-2  # for soft update of target parameters
 lr_actor = 5e-4  # actor learning rate
 lr_critic = 1e-3  # critic learning rate
+loss_l = 2  # Lx norm to use, options: 1 or 2
 weight_decay = 0  # L2 weight decay
 learn_every = 1  # learn every update_every steps of environment
 learn_steps = 1  # how many learning steps per environment step
