@@ -15,14 +15,15 @@ import seaborn as sb
 
 import torch
 
-from ddpg_agent import Agent
+from ddpg_agents import SingleDDPGAgent, MultiDDPGAgent
 
 from unityagents import UnityEnvironment
 
 
-# activate for dark-mode plots
-# sb.set(style="ticks", context="talk")
-# plt.style.use("dark_background")
+def ActivateDarkMode():
+    # activate for dark-mode plots
+    sb.set(style="ticks", context="talk")
+    plt.style.use("dark_background")
 
 
 def init_environment(path_to_app):
@@ -54,7 +55,7 @@ def plot_scores(scores, cfg):
 def ddpg_learning(env, agent, brain_name,
                   n_episodes=2000, max_t=100000,
                   avg_score_cutoff=15,
-                  save_path_actor=None, save_path_critic=None):
+                  model_save_path=None):
     """Function to perform Deep Deterministic Policy Gradient learning.
 
     Params
@@ -65,31 +66,56 @@ def ddpg_learning(env, agent, brain_name,
         n_episodes (int): maximum number of training episodes
         max_t (int): maximum number of time-steps per episode
         avg_score_cutoff (float): training will be stopped if avg score over last 100 episodes exceeds this value
-        save_path_{actor/critic}: paths to save model weights in
+        model_save_path: path to directory to save model weights in
     """
     print("Training an agent with DDPG.")
 
-    scores = []  # list containing scores from each episode
+    env_info = env.reset(train_mode=True)[brain_name]
+    action_size = env.brains[brain_name].vector_action_space_size
+    # state_size = env_info.vector_observations.shape[1]
+    num_agents = len(env_info.agents)
+
+    if not os.path.exists(model_save_path):
+        os.mkdir(model_save_path)
+
+    all_scores = []  # list containing scores from each episode
 
     for i_episode in range(1, n_episodes + 1):
-        state = env.reset(train_mode=True)[brain_name]
-        state = state.vector_observations[0]
-        score = 0
+
+        env_info = env.reset(train_mode=True)[brain_name]
+        states = env_info.vector_observations
+
+        scores = np.zeros(num_agents)
+
         for t in range(max_t):
-            action = agent.act(state)
-            env_info = env.step(action)[brain_name]
-            next_state = env_info.vector_observations[0]
-            reward = env_info.rewards[0]
-            done = env_info.local_done[0]
-            agent.step(state, action, reward, next_state, done)
-            state = next_state
-            score += reward
-            if done:
+
+            if cfg.maddpg:
+                actions = agent.act(states)
+                env_info = env.step(actions)[brain_name]
+            else:
+                actions = agent.act(states.reshape(-1))
+                env_info = env.step(actions.reshape(num_agents, action_size))
+
+            next_states = env_info.vector_observations
+            rewards = env_info.rewards
+            dones = env_info.local_done
+
+            if cfg.maddpg:
+                agent.step(states, actions, rewards, next_states, dones)
+            else:
+                # single agent with states and actions stacked together
+                agent.step(states.reshape(-1), actions.reshape(num_agents, action_size),
+                           np.max(rewards), next_states.reshape(-1),
+                           np.any(dones))
+
+            states = next_states
+            scores += rewards
+            if np.any(dones):
                 break
 
-        scores.append(score)  # save most recent score
+        all_scores.append(scores)  # save most recent score
 
-        last100mean = np.mean(scores[-100:])
+        last100mean = np.mean(np.max(np.atleast_2d(all_scores), axis=1)[-100:])
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(
             i_episode, last100mean), end="")
 
@@ -97,22 +123,20 @@ def ddpg_learning(env, agent, brain_name,
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(
                 i_episode, last100mean))
 
+            if model_save_path is not None:
+                agent.save_weights(model_save_path)
+
         if last100mean >= avg_score_cutoff:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(
                 i_episode, last100mean))
 
             break
 
-    # save trained models
-    if save_path_actor is not None:
-        print("Saving actor network weights to file {:s}".format(save_path_actor))
-        torch.save(agent.actor_local.state_dict(), save_path_actor)
+    # save trained models a final time
+    if model_save_path is not None:
+        agent.save_weights(model_save_path)
 
-    if save_path_critic is not None:
-        print("Saving critic network weights to file {:s}".format(save_path_critic))
-        torch.save(agent.critic_local.state_dict(), save_path_critic)
-
-    return pd.Series(scores)
+    return pd.DataFrame(all_scores)
 
 
 def train_or_play(cfg):
@@ -125,17 +149,24 @@ def train_or_play(cfg):
     env_info = env.reset(train_mode=True)[brain_name]
 
     action_size = brain.vector_action_space_size
-    state_size = len(env_info.vector_observations[0])
+    state_size = env_info.vector_observations.shape[1]
+    num_agents = len(env_info.agents)
 
-    agent = Agent(state_size, action_size, cfg)
+    if cfg.maddpg:
+        agent = MultiDDPGAgent(state_size, action_size, num_agents, cfg)
+    else:
+        agent = SingleDDPGAgent(state_size, action_size, cfg)
+
+    if os.path.exists(cfg.model_save_path):
+        print("Loading existing weights from path {:s}!".format(cfg.model_save_path))
+        agent.load_weights(cfg.model_save_path)
 
     if cfg.train_model:
 
         scores = ddpg_learning(env, agent, brain_name,
                                n_episodes=cfg.n_episodes, max_t=cfg.max_t,
                                avg_score_cutoff=cfg.avg_score_cutoff,
-                               save_path_actor=cfg.save_path_actor,
-                               save_path_critic=cfg.save_path_critic)
+                               model_save_path=cfg.model_save_path)
 
         if cfg.save_scores:
             print("Saving scores to file {:s}".format(cfg.save_scores))
@@ -145,10 +176,8 @@ def train_or_play(cfg):
 
     else:  # visualize trained model and scores
 
-        assert os.path.exists(
-            cfg.save_path_actor), "Saved model weights need to exist before you can watch a trained agent!"
-        assert os.path.exists(
-            cfg.save_path_critic), "Saved model weights need to exist before you can watch a trained agent!"
+        assert (os.path.exists(cfg.save_path_actor),
+                "Saved model weights need to exist before you can watch a trained agent!")
 
         print("Visualizing the trained agent!")
 
@@ -196,4 +225,5 @@ if __name__ == "__main__":
     if cfg.train_model:
         shutil.copyfile(cfgfn, os.path.join(cfg.experiment_path, os.path.split(cfgfn)[1]))
 
+    # ActivateDarkMode()
     train_or_play(cfg)
