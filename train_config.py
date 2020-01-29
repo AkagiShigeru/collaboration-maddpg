@@ -14,38 +14,38 @@ model_save_path = os.path.join(experiment_path, "model_weights")  # directory to
 save_scores = os.path.join(experiment_path, "training_scores.hdf")
 train_model = True  # if False, will show trained agent, if True: will train new model and save weights in above path
 maddpg = True  # will perform multi-agent ddpg with shared critic, otherwise single agent ddpg (bad performance)
-graphic_mode = False  # if True, will show unity window, if False will not show window
+graphic_mode = True  # if True, will show unity window, if False will not show window
 eps_to_watch = 5  # if watching trained agents in action, how many episodes to watch
 
 ### general options
-random_seed = 42  # random seed
+random_seed = 1337  # random seed
 
 ### qnetwork options
 
 # define number and dimension of dense layers
 # input size of first layer and output of last are given by state and action space sizes, respectively.
-dense_layers_actor = [256, 128]
-dense_layers_critic = [256, 128]
+dense_layers_actor = [256, 128, 128, 64]
+dense_layers_critic = [256, 128, 128, 64]
 
 ### agent options
-buffer_size = int(3e5)  # replay buffer size
+buffer_size = int(1e6)  # replay buffer size
 batch_size = 256  # mini-batch size
-gamma = 0.99  # discount factor
-tau = 5e-3  # for soft update of target parameters
-lr_actor = 1e-3  # actor learning rate
+gamma = 0.95  # discount factor
+tau = 1e-2  # for soft update of target parameters
+lr_actor = 1e-4  # actor learning rate
 lr_critic = 1e-3  # critic learning rate
 loss_l = 2  # Lx norm to use for critic loss, options: 1 or 2
 weight_decay = 0  # L2 weight decay
-learn_every = 2  # learn every update_every steps of environment
+learn_every = 1  # learn every update_every steps of environment
 learn_steps = 1  # how many learning steps per environment step
 
 # noise
 use_ou = True  # use Ornstein-Uhlenbeck noise, otherwise Gaussian noise
-sigma_ou = 0.05
-theta_ou = 0.
+sigma_ou = 0.2
+theta_ou = 0.1
 noise_scale = 1.
 noise_decay = 0.9995
-noise_min = 1e-3
+noise_min = 1e-4
 
 # parameters for prioritized experience replay
 init_replay = 1e4

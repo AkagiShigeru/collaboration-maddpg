@@ -2,13 +2,10 @@
 
 ## Approach
 
-The **Reacher environment** with its moving, double-jointed arm provides a nice continuous control experiment.
-Simple value-based methods like DQN are not well-suited to solve tasks with such a continuous action space.
-A better approach for these tasks is to approximate the policy function directly. The policy function maps a given input state to 
-the expected best action, the output state. However, simple policy methods suffer from a large variance while training, or might not even converge at all in a reasonable time, depending on the complexity of the problem.
-While there are various extensions and improvements of policy methods, like PPO, actor-critic methods were proposed as a method to more reliably
-solve challenging continuous environments. The basic idea is to estimate both the policy- and the value functions.
-The actor represents the policy function as it directly determines the actions, while the critic represents the value or Q-function.
+The **Tennis environment** consists of two agents that are both rewarded by
+keeping the ball in play. If each agent maximizes only its own profit, it will therefore
+not lead to an optimal solution. The agents have to learn to collaborate to maximize both
+of their rewards/scores.
 
 For this solution, we used **DDPG**, which is a special type of actor-critic method.
 

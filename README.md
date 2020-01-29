@@ -66,12 +66,13 @@ Here is a brief description of the included files and their functions:
 - `models.py`: Defines PyTorch neural networks for actor and critic with user-specified number of dense layers between in- and output and ReLU activation after each hidden layer.
 - `ddpg_agents.py`: Includes the implementation of the single and multi RL agents that uses the actor and critic neural networks to adapt and learn the environment. Also includes an implementation of an experience replay memory with optional prioritization.
 - `collaboration.py`: The main driver file that controls and steers the training and plotting.
+- `utils.py`: Some utilities like replay memory and noise process class.
 - `train_config.py`: A config file with settings to train a new agent.
 - `replay_config.py`: A config file with settings to inspect a trained agent, based on the experiment results provided in this package.
 
 To view a trained agent, please run:
 ```
-python cont_control.py replay_config.py
+python collaboration.py replay_config.py
 ```
 
 For more details, the comments within the code should give further insights on how it functions.

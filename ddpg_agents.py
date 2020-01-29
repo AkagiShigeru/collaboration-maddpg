@@ -29,7 +29,7 @@ class MultiDDPGAgent:
             num_agents (int): Number of agents in environment
             cfg (config object): main configuration with other settings
         """
-        print("Initializing MADDPG agent!")
+        print("Initializing MADDPG agent with {:d} agents!".format(num_agents))
 
         self.state_size = state_size
         self.action_size = action_size
@@ -94,6 +94,7 @@ class MultiDDPGAgent:
         """
         target_actions = []
         for aid in range(self.num_agents):
+            # states_all format (batch size, num_agents, state size)
             target_actions.append(self.agents[aid].target_act(states_all[:, aid, :]))
 
         return target_actions
@@ -165,7 +166,8 @@ class MultiDDPGAgent:
 
         critic_loss = None
         if self.cfg.loss_l == 1:
-            critic_loss = torch.nn.SmoothL1Loss(q, y.detach())
+            huber_loss = torch.nn.SmoothL1Loss()
+            critic_loss = huber_loss(q, y.detach())
         elif self.cfg.loss_l == 2:
             critic_loss = F.mse_loss(q, y.detach())
         else:
@@ -183,10 +185,10 @@ class MultiDDPGAgent:
         # detach the other agents to save computation
         # saves some time for computing derivative
         q_input = [self.agents[i].actor_local(
-            states.view([batch_size, self.num_agents, -1])[:, i, :]) if i == agent_number else
+            states.view(batch_size, self.num_agents, -1)[:, i, :]) if i == agent_number else
                    self.agents[i].actor_local(
-                       states.view([batch_size, self.num_agents, -1])[:, i, :]).detach() for i in
-                   range(self.num_agents)]
+                       states.view(batch_size, self.num_agents, -1)[:, i, :]).detach()
+                   for i in range(self.num_agents)]
 
         q_input = torch.cat(q_input, dim=1)
 
@@ -303,7 +305,7 @@ class SingleDDPGAgent:
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
         with torch.no_grad():
-            action = self.actor_local(state).cpu().data.numpy()
+            action = self.actor_local(state.view(1, -1)).squeeze().cpu().data.numpy()
         self.actor_local.train()
         if add_noise:
             action += self.noise.sample()

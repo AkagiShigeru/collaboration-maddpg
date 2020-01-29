@@ -32,6 +32,8 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
         self.seed = torch.manual_seed(seed)
 
+        self.bn = nn.BatchNorm1d(state_size)
+
         self.hidden = nn.ModuleList()
         layers = [state_size] + fc_units + [action_size]
         for i_d in range(len(layers) - 1):
@@ -45,13 +47,13 @@ class Actor(nn.Module):
                 f.weight.data.uniform_(*hidden_init(f))
             else:
                 f.weight.data.uniform_(-3e-3, 3e-3)
-            f.bias.data.fill_(1e-1)
+            # f.bias.data.fill_(1e-1)
 
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
-        x = state
+        x = self.bn(state)
         for i_f, f in enumerate(self.hidden):
-            x = F.relu(f(x)) if i_f < len(self.hidden) - 1 else f(x)
+            x = F.leaky_relu(f(x)) if i_f < len(self.hidden) - 1 else f(x)
         return F.tanh(x)
 
 
@@ -72,6 +74,8 @@ class Critic(nn.Module):
         self.seed = torch.manual_seed(seed)
         self.cat_layer = cat_action_layer
 
+        self.bn = nn.BatchNorm1d(state_size)
+
         self.hidden = nn.ModuleList()
         layers = [state_size] + fc_units + [1]  # output to one node: value
         for i_d in range(len(layers) - 1):
@@ -87,11 +91,11 @@ class Critic(nn.Module):
                 f.weight.data.uniform_(*hidden_init(f))
             else:
                 f.weight.data.uniform_(-3e-3, 3e-3)
-            f.bias.data.fill_(1e-1)
+            # f.bias.data.fill_(1e-1)
 
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
-        x = state
+        x = self.bn(state)
         for i_f, f in enumerate(self.hidden):
             if i_f == self.cat_layer:
                 x = torch.cat((x, action), dim=1)

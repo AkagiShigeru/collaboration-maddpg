@@ -24,8 +24,9 @@ def ActivateDarkMode():
     plt.style.use("dark_background")
 
 
-def init_environment(path_to_app):
-    env = UnityEnvironment(file_name=path_to_app)
+def init_environment(path_to_app, graphic_mode=True):
+    env = UnityEnvironment(file_name=path_to_app,
+                           no_graphics=not graphic_mode)
     return env
 
 
@@ -117,14 +118,14 @@ def ddpg_learning(env, agent, brain_name,
 
         last100mean = np.mean(np.max(np.atleast_2d(all_scores), axis=1)[-100:])
         if i_episode % 100 == 0:
-            print('\rEpisode {}\tAverage Score: {:.2f}'.format(
+            print('\rEpisode {}\tAverage Score: {:.4f}'.format(
                 i_episode, last100mean))
 
             if model_save_path is not None:
                 agent.save_weights(model_save_path)
 
         if last100mean >= avg_score_cutoff:
-            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.4f}'.format(
                 i_episode, last100mean))
 
             break
@@ -138,7 +139,7 @@ def ddpg_learning(env, agent, brain_name,
 
 def train_or_play(cfg):
     # initialize the environment and obtain state/action sizes and other parameters
-    env = init_environment(cfg.app_path)
+    env = init_environment(cfg.app_path, graphic_mode=cfg.graphic_mode)
 
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
