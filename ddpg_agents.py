@@ -133,7 +133,6 @@ class MultiDDPGAgent:
             Update critic and actor networks of given agent using provided
             samples from replay memory.
         """
-
         # from memory
         states, actions, rewards, next_states, priorities, dones, indices = samples
 
@@ -148,8 +147,8 @@ class MultiDDPGAgent:
         # 1. Update of critic
         agent.critic_optimizer.zero_grad()
 
-        # critic loss = TD-error, so batch mean of (y- Q(s,a) from target network)^2
-        # y = reward of this time-step + discount * Q(st+1,at+1) from target network
+        # critic loss = TD-error, so batch mean of (y- Q*(s,a))^2
+        # y = current reward + discount * Q*(st+1,at+1) from target network Q*
 
         # shape (batch_size, num_agents, -1)
         target_actions = torch.cat(
@@ -159,8 +158,8 @@ class MultiDDPGAgent:
         # get next q values from target critic
         q_next = agent.critic_target(full_next_states, target_actions.to(device))
 
-        y = rewards[:, agent_number].view(-1, 1) + self.cfg.gamma * q_next * (
-                1 - dones[:, agent_number].view(-1, 1))
+        y = rewards[:, agent_number].view(-1, 1) + \
+            self.cfg.gamma * q_next * (1 - dones[:, agent_number].view(-1, 1))
 
         q = agent.critic_local(full_states, actions.view(batch_size, -1))
 
@@ -314,7 +313,7 @@ class SingleDDPGAgent:
         """ Let target network return action."""
         self.actor_target.eval()
         with torch.no_grad():
-            action_target = self.actor_target(state).cpu().data.numpy()
+            action_target = self.actor_target(state)
 
         return np.clip(action_target, -1, 1)
 

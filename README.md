@@ -1,4 +1,4 @@
-# Solving the Tennis multi-agent task with a modified Deep Deterministic Policy Gradient
+# Solving the Tennis multi-agent task with a Multi-Agent Deep Deterministic Policy Gradient
 
 This repository provides code to solve the [Tennis](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#tennis) environment
 with Deep Reinforcement Learning, specifically with the Multi-Agent Deep Deterministic Policy Gradient (MADDPG) method.
@@ -7,7 +7,7 @@ The code of this project was in parts adapted from code given in the Udacity Dee
 
 ## Prerequisites
 
-The environment is based on an Unity application, so please make sure to install
+The environment is based on a Unity application, so please make sure to install
 the [ml-agents repository](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Installation.md)
 in order to interact with the environment via the Python code of this project.
 
@@ -16,7 +16,7 @@ Furthermore, the full environment as given in `environment.yml` is required to w
 conda env create -f environment.yml
 ```
 
-This will create a new environment with the name `tennis-ddpg` and install all dependencies.
+This will create a new environment with the name `tennis-ddpg` and will install all dependencies.
 
 The actual Tennis Unity application can be downloaded from the links provided here:
 

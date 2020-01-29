@@ -24,17 +24,17 @@ random_seed = 42  # random seed
 
 # define number and dimension of dense layers
 # input size of first layer and output of last are given by state and action space sizes, respectively.
-dense_layers_actor = [512, 256]
-dense_layers_critic = [512, 256]
+dense_layers_actor = [256, 128]
+dense_layers_critic = [256, 128]
 
 ### agent options
 buffer_size = int(3e5)  # replay buffer size
 batch_size = 256  # mini-batch size
 gamma = 0.99  # discount factor
-tau = 1e-2  # for soft update of target parameters
-lr_actor = 5e-4  # actor learning rate
+tau = 5e-3  # for soft update of target parameters
+lr_actor = 1e-3  # actor learning rate
 lr_critic = 1e-3  # critic learning rate
-loss_l = 2  # Lx norm to use, options: 1 or 2
+loss_l = 2  # Lx norm to use for critic loss, options: 1 or 2
 weight_decay = 0  # L2 weight decay
 learn_every = 1  # learn every update_every steps of environment
 learn_steps = 1  # how many learning steps per environment step
@@ -45,7 +45,7 @@ sigma_ou = 0.05
 theta_ou = 0.
 noise_scale = 1.
 noise_decay = 0.9995
-noise_min = 0.1
+noise_min = 1e-3
 
 # parameters for prioritized experience replay
 init_replay = 1e4
