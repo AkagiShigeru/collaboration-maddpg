@@ -5,32 +5,38 @@
 The **Tennis environment** consists of two agents that are both rewarded by
 keeping the ball in play. If each agent maximizes only its own profit, it will therefore
 not lead to an optimal solution. The agents have to learn to collaborate to maximize both
-of their rewards/scores.
+of their rewards/scores. This requires them to also take into account the state of the other agent in addtion to their own observed state.
+The multi-agent DDPG provices one approach to solve this problem. In this approach, the actors of each agent receive only their respective game states,
+while the critics receive the full game states and can therefore learn to maximize the joined rewards. The architecture of the approach is also
+depicted in the following schematic:
 
-For this solution, we used **DDPG**, which is a special type of actor-critic method.
+<img src="figures/maddpg.png" alt="MADDPG schematic" width="500">
+
+For execution, the actors only consider the states of their respective agents, while
+for training, critics consider the full/joined game state.
 
 Those are the summarized main points underlying the method:
-- Neural networks with dense layers and ReLu activations are used to approximate both the actor and critic networks.
-- To provide a more stable convergence, both networks are split into separate but identical local and target networks. At each optimization step, the target network parameters are updated with a soft update.
+- Neural networks with dense layers and ReLu activations are used to approximate both the actor and critic networks. We converged to use four hidden layers with size 256, 128, 128, and 64 in the final layer.
+- To provide a more stable convergence, all four networks are split into separate but architecturally identical local and target networks. At each optimization step, the target network parameters are updated with a soft update.
 - The Q-learning side is tackled by optimizing the TD-error/MSBE by continuously minimizing the squared Bellman-equation residual.
 - The actions in the target Q-function are taken directly from the target policy. The policy is kept fixed for the Q-learning.
 - The policy is trained by simply performing gradient descent on the negative of the current Q-function, given the actions by the policy. The Q-function parameters are kept fixed for this step, only the policy parameters are changed.
 
 More details about the DDPG method in general are nicely summarized here: [https://spinningup.openai.com/en/latest/algorithms/ddpg.html]
+The modifications and details of MADDPG are studied in this paper: [https://papers.nips.cc/paper/7217-multi-agent-actor-critic-for-mixed-cooperative-competitive-environments.pdf]
 
 ### Implementation details
 
 All relevant parameters used for training can be specified in the config file and are automatically passed to the relevant parts of the code.
 The PyTorch networks representing actor and critic were written such as to allow a customizable number and size of dense layers.
-We used two layers with 128 nodes each for both networks.
-Experience replay with a memory/buffer size of 10000 was used to obtain training frames from the environment. By default, the actual training samples are
+We used four layers with 256, 128, 128, and 64 nodes each for both networks.
+Experience replay with a memory/buffer size of 100000 was used to obtain training frames from the environment. By default, the actual training samples are
 drawn randomly from this memory (with uniform probability). We also implemented prioritized experience replay on the Q-learning part based on the
-[original paper](https://arxiv.org/pdf/1511.05952.pdf). However, we couldn't see a clear benefit of using the prioritized replay in our tests. It might need to be further adapted or tuned for DDPG. 
+[original paper](https://arxiv.org/pdf/1511.05952.pdf). However, the implementation hadn't been fully adapted to work with MADDPG yet.
 
-We found that a typical discount factor of 0.99 leads to a worse training and slower convergence than a slightly reduced factor of 0.9.
-The parameter tau controlling the soft update, as well as both actor and critic learning rates were set to 0.001.
-We also noticed an improved training when the standard deviation of the noise added to actions is reduced.
-We use uncorrelated Gaussian noise instead of sampling from the Ornstein-Uhlenbeck process. The former seems to work better in our case, and seems to be more intuitive in general.
+We found that a typical discount factor of 0.99 leads to a worse training and slower convergence than a slightly reduced factor of 0.95.
+The parameter tau controlling the soft update, as well as both actor and critic learning rates were set to 0.01. A larger value than usual seems to help convergence.
+# TODO: more descriptions needed
 
 ## Results
 

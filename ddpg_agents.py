@@ -120,7 +120,7 @@ class MultiDDPGAgent:
             for _ in range(self.cfg.learn_steps):
                 self.learn_all()
 
-        self.noise_scale = max(self.noise_scale * self.cfg.noise_decay, self.cfg.noise_min)
+        self.noise_scale = max(self.noise_scale * self.cfg.noise_decay, self.cfg.noise_scale_min)
         self.t_step += 1
 
     def learn_all(self):
@@ -128,6 +128,7 @@ class MultiDDPGAgent:
         samples = self.memory.sample()
         for aid in range(self.num_agents):
             self.learn(samples, aid)
+            self.soft_update_all()
 
     def learn(self, samples, agent_number):
         """

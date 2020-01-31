@@ -51,7 +51,7 @@ def plot_scores(scores, cfg):
     plt.savefig(os.path.join(cfg.experiment_path, "scores.png"))
 
 
-def ddpg_learning(env, agent, brain_name,
+def ddpg_learning(env, agent, brain_name, cfg,
                   n_episodes=2000, max_t=100000,
                   avg_score_cutoff=15,
                   model_save_path=None):
@@ -62,6 +62,7 @@ def ddpg_learning(env, agent, brain_name,
         env: environment that the agent interacts with
         agent: agent instance that does all the computation/optimization in the background
         brain_name: name of the Unity brain instance to select correct agent/window
+        cfg: config settings
         n_episodes (int): maximum number of training episodes
         max_t (int): maximum number of time-steps per episode
         avg_score_cutoff (float): training will be stopped
@@ -124,6 +125,9 @@ def ddpg_learning(env, agent, brain_name,
             if model_save_path is not None:
                 agent.save_weights(model_save_path)
 
+            if cfg.save_scores:
+                pd.DataFrame(scores).to_hdf(cfg.save_scores, "scores")
+
         if last100mean >= avg_score_cutoff:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.4f}'.format(
                 i_episode, last100mean))
@@ -155,13 +159,14 @@ def train_or_play(cfg):
     else:
         agent = SingleDDPGAgent(state_size, action_size, cfg)
 
+    print(cfg.model_save_path)
     if os.path.exists(cfg.model_save_path):
         print("Loading existing weights from path {:s}!".format(cfg.model_save_path))
         agent.load_weights(cfg.model_save_path)
 
     if cfg.train_model:
 
-        scores = ddpg_learning(env, agent, brain_name,
+        scores = ddpg_learning(env, agent, brain_name, cfg,
                                n_episodes=cfg.n_episodes, max_t=cfg.max_t,
                                avg_score_cutoff=cfg.avg_score_cutoff,
                                model_save_path=cfg.model_save_path)
