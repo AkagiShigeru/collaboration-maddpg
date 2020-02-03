@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from matplotlib import pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 import seaborn as sb
 
 from ddpg_agents import SingleDDPGAgent, MultiDDPGAgent
@@ -30,18 +31,41 @@ def init_environment(path_to_app, graphic_mode=True):
     return env
 
 
-def plot_scores(scores, cfg):
+def plot_scores(scores, cfg, plot_agents=True, mas=[100], plot_individual_episodes=False):
+    """Plot achieved training scores with some simple options."""
     scores = pd.Series(scores.max(axis=1))
+
+    if plot_agents:
+        scores_all = pd.DataFrame(scores)
+
     # plot the scores
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111)
 
-    ax.plot(scores.index, scores.values, ls="-", color="k", label="Scores")
-    ma = scores.rolling(20).median()
-    ax.plot(ma.index, ma.values, ls="-", color="r", label="Moving median scores (20 episodes)")
+    for ma_i in mas:
 
-    ma = scores.rolling(100).median()
-    ax.plot(ma.index, ma.values, ls="-", color="b", label="Moving median scores (100 episodes)")
+        if plot_individual_episodes:
+            ax.plot(scores.index, scores.values, ls="-", color="k", label="Scores")
+
+        ma = scores.rolling(ma_i).mean()
+        ax.plot(ma.index, ma.values, ls="-", color="r", lw=2,
+                label="Moving average scores ({:d} episodes)".format(ma_i))
+
+        # need to define other colors for individual agents
+        if plot_agents and scores_all.shape[1] > 1:
+            for iagent in range(scores_all.shape[1]):
+                scores_i = scores_all[iagent]
+
+                if plot_individual_episodes:
+                    ax.plot(scores_all.index, scores_i, ls="-", color="k",
+                            label="Scores (Agent {:d})".format(iagent))
+
+                ma = scores.rolling(ma_i).mean()
+                ax.plot(ma.index, ma.values, ls="-", color="r", lw=2,
+                        label="Moving average scores ({:d} episodes, Agent {:d})".format(ma_i,
+                                                                                         iagent))
+
+    plt.gca().xaxis.set_major_formatter(FormatStrFormatter("%.0f"))
 
     plt.ylabel('Score')
     plt.xlabel('Episode #')
@@ -184,6 +208,10 @@ def train_or_play(cfg):
 
         print("Visualizing the trained agent!")
 
+        print("Re-plotting scores")
+        if os.path.exists(cfg.save_scores):
+            plot_scores(pd.read_hdf(cfg.save_scores, "scores"), cfg)
+
         for epi in range(1, cfg.eps_to_watch + 1):
 
             print("Playing episode {:d}".format(epi))
@@ -211,9 +239,6 @@ def train_or_play(cfg):
             # warning: n_agent 2 logic hardcoded here
             print("Episode {:d} ended with score: {:.2f} (agent 1: {:.2f}, agent 2: {:.2f})!".
                   format(epi, np.max(scores), scores[0], scores[1]))
-
-        if os.path.exists(cfg.save_scores):
-            plot_scores(pd.read_hdf(cfg.save_scores, "scores"), cfg)
 
     env.close()
 

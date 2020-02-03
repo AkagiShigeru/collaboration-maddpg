@@ -18,7 +18,7 @@ graphic_mode = True  # if True, will show unity window, if False will not show w
 eps_to_watch = 20  # if watching trained agents in action, how many episodes to watch
 
 ### general options
-random_seed = 1337  # random seed
+random_seed = 42  # random seed
 
 ### qnetwork options
 
